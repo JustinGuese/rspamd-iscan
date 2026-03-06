@@ -1,0 +1,55 @@
+namespace: spamfilter
+
+# Redis — deployed in-cluster by default.
+# Set enabled: false and override rspamd.redisServer to use an external instance.
+redis:
+  enabled: true
+  image: redis:7-alpine
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+rspamd:
+  image: rspamd/rspamd:latest
+  # Points to the in-cluster Redis service by default.
+  # Override when redis.enabled=false.
+  redisServer: "spamfilter-redis:6379"
+  # controllerPassword is auto-generated on first deploy and stored in the
+  # spamfilter-rspamd-credentials Secret. Do not set this here.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+rspamdIscan:
+  image: guestros/rspamd-iscan:latest
+  imapAddr: "imap.example.com:993"
+  imapUser: "user@example.com"
+  mailboxes:
+    inbox: "INBOX"
+    spam: "INBOX.Junk"
+    ham: "INBOX"
+    undetected: "INBOX.Undetected"
+    backup: "INBOX.BackupMailbox"
+    scan: "INBOX.Unscanned"
+  tempDir: "/tmp"
+  keepTempFiles: true
+  spamThreshold: 6.0
+  logImapData: false
+  # Name of the pre-existing secret containing ImapUser and ImapPassword.
+  # Must be created manually before installing the chart — see README.
+  secretName: spamfilter-rspamd-iscan-secret
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi

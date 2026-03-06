@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rspamd-iscan
+description: Helm chart for the rspamd + rspamd-iscan spam filtering stack
+type: application
+version: 0.1.0
+appVersion: "latest"

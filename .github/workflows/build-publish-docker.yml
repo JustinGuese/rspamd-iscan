@@ -4,27 +4,76 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly at midnight UTC on Sunday
+  workflow_dispatch:      # Manual trigger button
 
 env:
   DOCKER_IMAGE_NAME: rspamd-iscan
 
 jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - name: Get upstream commit SHA
+        id: upstream
+        run: |
+          SHA=$(git ls-remote https://github.com/fho/rspamd-iscan.git refs/heads/main | cut -f1)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "$SHA" > last-upstream-sha.txt
+
+      - name: Check cache for upstream SHA
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: last-upstream-sha.txt
+          key: upstream-sha-${{ steps.upstream.outputs.sha }}
+
+      - name: Determine if build is needed
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "Push to main — always build"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.cache.outputs.cache-hit }}" = "true" ]; then
+            echo "Upstream unchanged (cache hit), skipping build"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Upstream changed or first run — building"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
   docker:
+    needs: check-upstream
+    if: needs.check-upstream.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout this repo (for Dockerfile)
         uses: actions/checkout@v4
+
+      - name: Clone upstream source
+        run: git clone --depth 1 https://github.com/fho/rspamd-iscan.git upstream-src
+
+      - name: Copy source to build context
+        run: |
+          cp upstream-src/go.mod upstream-src/go.sum .
+          cp upstream-src/main.go .
+          cp -r upstream-src/internal .
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Set up QEMU
+
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-      -
-        name: Set up Docker Buildx
+
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:

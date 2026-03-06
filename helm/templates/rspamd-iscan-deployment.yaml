@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spamfilter-rspamd-iscan
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: spamfilter-rspamd-iscan
+    app.kubernetes.io/part-of: spamfilter-stack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: spamfilter-rspamd-iscan
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: spamfilter-rspamd-iscan
+        app.kubernetes.io/part-of: spamfilter-stack
+    spec:
+      containers:
+        - name: rspamd-iscan
+          image: {{ .Values.rspamdIscan.image }}
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--cfg-file"
+            - "/etc/rspamd-iscan/config.toml"
+          volumeMounts:
+            - name: rspamd-credentials
+              mountPath: /etc/rspamd-iscan/config.toml
+              subPath: rspamd-iscan-config.toml
+            - name: rspamd-iscan-credentials
+              mountPath: /run/credentials/rspamd-iscan
+          env:
+            - name: CREDENTIALS_DIRECTORY
+              value: /run/credentials/rspamd-iscan
+          resources:
+            {{- toYaml .Values.rspamdIscan.resources | nindent 12 }}
+      volumes:
+        - name: rspamd-credentials
+          secret:
+            secretName: spamfilter-rspamd-credentials
+        - name: rspamd-iscan-credentials
+          secret:
+            secretName: {{ .Values.rspamdIscan.secretName }}

@@ -1,0 +1,16 @@
+# Usage: helm install rspamd-iscan ./helm -f helm/examplevalues.yaml
+
+rspamdIscan:
+  imapAddr: "imap.hostinger.com:993"  # Hostinger Email, its good and cheap (~1€/month), 
+  # if you want to sponsor me a coffee use my ref link :) https://www.hostinger.com?REFERRALCODE=RQHGUESEJPZB
+  imapUser: "info@datafortress.cloud"
+  # remember to create the mailbox password secret, see README.md for more details.
+  mailboxes:
+    # these are not set in every mail provider! i had to create Undetected, Unscanned, BackupMailbox manually.
+    inbox: "INBOX"
+    spam: "INBOX.Junk"
+    ham: "INBOX"
+    undetected: "INBOX.Undetected"
+    backup: "INBOX.BackupMailbox"
+    scan: "INBOX.Unscanned"
+  spamThreshold: 6.0

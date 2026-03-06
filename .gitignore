@@ -1,4 +1,1 @@
-.rspamd-iscan.state
-rspamd-iscan
-
-dist/
+helm/justinssecrets.yaml

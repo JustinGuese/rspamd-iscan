@@ -3,165 +3,114 @@
 [![build](https://github.com/fho/rspamd-iscan/actions/workflows/build.yml/badge.svg)](https://github.com/fho/rspamd-iscan/actions/workflows/build.yml)
 [![build-publish-docker](https://github.com/JustinGuese/rspamd-iscan/actions/workflows/build-publish-docker.yml/badge.svg)](https://github.com/JustinGuese/rspamd-iscan/actions/workflows/build-publish-docker.yml)
 
-rspamd-iscan is a daemon that monitors IMAP mailboxes and sends new mails to
-[Rspamd](https://rspamd.com) for spam analysis and training.
-It decouples spam filtering from mail delivery - allowing the MDA,
-Rspamd and rspamd-iscan to run on totally different hosts.
-For example, you can filter mails on the IMAP server of your third-party
-provider with your self-hosted Rspamd instance.
-It is similar to [isbg](https://gitlab.com/isbg/isbg) but uses Rspamd instead of
-SpamAssassin.
+> **The main repository is at [fho/rspamd-iscan](https://github.com/fho/rspamd-iscan). This repo provides the Docker image and Helm chart.**
 
-rspamd-iscan continuously monitors the IMAP `ScanMailbox` for new mails with
-_IMAP IDLE_. \
-When a new mail arrives, it is sent to Rspamd's HTTP interface for
-scanning. The scan result is added as headers to the e-mail and the modified
-mail is uploaded to either the `SpamMailbox` or the `InboxMailbox`, depending on
-its classification. \
-The unmodified original mail is moved from the `ScanMailbox` to the
-`BackupMailbox`.
+rspamd-iscan is a daemon that monitors IMAP mailboxes and sends new mails to [Rspamd](https://rspamd.com) for spam analysis and training. It decouples spam filtering from mail delivery — allowing the MDA, Rspamd, and rspamd-iscan to run on entirely separate hosts. For example, you can filter mails on the IMAP server of your third-party provider using your self-hosted Rspamd instance. It is similar to [isbg](https://gitlab.com/isbg/isbg) but uses Rspamd instead of SpamAssassin.
 
-Mails in the `HamMailbox` and `UndetectedMailbox` are periodically processed and
-submitted to Rspamd to be learned as ham or spam. Mails learned as ham are
-moved to `InboxMailbox`, learned Spam mails are moved to `SpamMailbox`.
+---
 
-## Installation
+## Quick start (Docker)
 
-### From Binaries
-
-Download and extract the binary from a [Release](https://github.com/fho/rspamd-iscan/releases).
-
-### From Source
-
-`go install github.com/fho/rspamd-iscan@latest`
-
-### From Docker
-
-**Build the image locally:**
+**Build and run locally:**
 
 ```bash
 docker build -t rspamd-iscan .
-```
 
-**Run with a mounted config file:**
-
-```bash
 docker run -d \
   --name rspamd-iscan \
   -v /path/to/config.toml:/etc/rspamd-iscan/config.toml \
   rspamd-iscan
 ```
 
-Or use the pre-built image from Docker Hub (if you have configured CI):
+Or pull the pre-built image:
 
 ```bash
-docker run -d \
-  --name rspamd-iscan \
-  -v /path/to/config.toml:/etc/rspamd-iscan/config.toml \
-  your-dockerhub-username/rspamd-iscan:latest
+docker pull guestros/rspamd-iscan
 ```
 
-**GitHub Actions (CI):** To publish images on push to `main`, configure your repository:
+---
 
-1. Go to **Settings → Secrets and variables → Actions**
-2. Add a **variable** `DOCKERHUB_USERNAME` with your Docker Hub username
-3. Add a **secret** `DOCKERHUB_TOKEN` with a Docker Hub [access token](https://hub.docker.com/settings/security) (create one under Account Settings → Security)
+## Helm (Kubernetes)
 
-To use a different variable or secret name, edit `.github/workflows/build-publish-docker.yml` and replace `vars.DOCKERHUB_USERNAME` and `secrets.DOCKERHUB_TOKEN` with your chosen names.
+A Helm chart is provided in `helm/`. It deploys the full stack: Rspamd + rspamd-iscan, with an optional in-cluster Redis.
 
-## Configuration
+### 1. Create the IMAP password secret
 
-### Rspamd
-
-A Rspamd instance must have been set up and it's controller HTTP interface must
-be reachable.
-
-### IMAP Server
-
-It is recommended to use your `INBOX` mailbox to store scanned HAM mails and
-reconfigure your mail-server to store new incoming mails in another mailbox,
-e.g. named `Unprocessed`. This does not require changing your mail-clients'
-configuration.
-If that is not possible, rspamd-iscan can monitor `INBOX` instead and move
-filtered Ham mails to another mailbox (e.g. named `Scanned`).
-Your mail-clients would then be configured to use `HAM` as inbox.
-
-- Ensure that you have the following mailboxes created on your IMAP server:
-  - One to store mails classified as Spam (`SpamMailbox`),
-  - One to store mails classified as Spam that was not detected
-    (`UndetectedMailbox`),
-  - One to store mails that have been wrongly classified as Spam (`HamMailbox`),
-  - One to store unprocessed new mails (`ScanMailbox`),
-  - One to store scanned mails classified as HAM (`InboxMailbox`)
-
-### rspamd-iscan
-
-rspamd-iscan is configured via a TOML configuration file.
-By default, it is read from `/etc/rspamd-iscan/config.toml`, another location
-can be specified by the `--cfg-file` command line parameter.
-
-Create a new configuration file with the following content and adapt it to your
-setup:
-
-```toml
-RspamdURL           = "http://192.168.178.2:11334"
-RspamdPassword      = "iwonttellyou"
-ImapAddr            = "my-imap-server:993"
-ImapUser            = "rickdeckard"
-ImapPassword        = "zhora"
-InboxMailbox        = "INBOX"
-SpamMailbox         = "Spam"
-HamMailbox          = "Ham"
-UndetectedMailbox   = "Undetected"
-BackupMailbox       = "Backup"
-# TempDir stores downloaded mails and their modified variants with added spam
-# headers
-TempDir             = "/tmp"
-# Set KeepTempFiles to false to delete temporary files after use immediately
-KeepTempFiles       = true
-ScanMailbox         = "Unscanned"
-# Mails with a higher or equal rspamd score than SpamThreshold are moved to
-# SpamMailbox, others to HamMailbox
-SpamThreshold       = 10.0
-# Raw incoming and outgoing IMAP data is logged with debug log level.
-# The logged data can contain sensitive information, like credentials.
-LogIMAPData         = false
-```
-
-### Credentials Directory
-
-Instead of storing sensitive credentials directly in the config file, you can use
-the `--credentials-directory` flag to specify a directory containing credential files.
-This is compatible with [systemd credentials](https://systemd.io/CREDENTIALS/).
-
-If the credentials directory is set, rspamd-iscan looks for files named after the
-config fields: `RspamdURL`, `RspamdPassword`, `ImapUser`, `ImapPassword`. If a file
-exists, its content overwrites the corresponding value from the TOML config.
-
-The `--credentials-directory` flag defaults to the `CREDENTIALS_DIRECTORY` environment
-variable if not specified.
-
-Example directory structure:
-```
-/run/credentials/rspamd-iscan/
-├── RspamdPassword
-├── ImapUser
-└── ImapPassword
-```
-
-## Running
+Only your IMAP password needs to be in a Kubernetes Secret — it is never managed by Helm and never stored in git. Your username and all other settings go in values.
 
 ```bash
-rspamd-iscan --cfg-file /etc/rspamd-iscan/config.toml 
+kubectl create namespace spamfilter
+
+kubectl create secret generic spamfilter-rspamd-iscan-secret \
+  -n spamfilter \
+  --from-literal=ImapPassword='yourpassword'
 ```
 
-better run it via systemd though :-)
+The Rspamd controller password is auto-generated on first `helm install` and stored in a separate secret in the cluster.
 
-## Project Status
+### 2. Install the chart
 
-The application is work-in-progress, the documented functionality works and is
-in use, tests are missing.
+At minimum you must provide your IMAP server address and username:
 
-## License
+```bash
+helm install rspamd-iscan ./helm \
+  --set rspamdIscan.imapAddr="imap.example.com:993" \
+  --set rspamdIscan.imapUser="you@example.com"
+```
 
-[EUPL](LICENSE)
+**With an external Redis** (disable the built-in one):
+
+```bash
+helm install rspamd-iscan ./helm \
+  --set rspamdIscan.imapAddr="imap.example.com:993" \
+  --set rspamdIscan.imapUser="you@example.com" \
+  --set redis.enabled=false \
+  --set rspamd.redisServer="redis-service.redis.svc.cluster.local:6379"
+```
+
+A reference values file for an external Redis setup is included:
+
+```bash
+helm install rspamd-iscan ./helm -f helm/examplevalues.yaml
+```
+
+All options are documented in `helm/values.yaml`.
+
+### IMAP mailbox setup
+
+The `rspamdIscan.mailboxes` section controls which IMAP folders are used:
+
+| Key | Purpose | Default |
+|---|---|---|
+| `scan` | Incoming unprocessed mail — rspamd-iscan watches this | `INBOX.Unscanned` |
+| `inbox` | Clean mail is moved here after scanning | `INBOX` |
+| `spam` | Detected spam is moved here | `INBOX.Junk` |
+| `ham` | Drop false positives here to train Rspamd | `INBOX` |
+| `undetected` | Drop missed spam here to train Rspamd | `INBOX.Undetected` |
+| `backup` | Archive copy of all processed messages | `INBOX.BackupMailbox` |
+
+> **Note:** `Undetected`, `Unscanned`, and `BackupMailbox` are non-standard folders — most providers won't create them automatically. Create them manually in your mail client or provider's webmail before deploying.
+
+**Recommended mail provider setup:** Configure a server-side rule to deliver all incoming mail into the `scan` folder instead of `INBOX`. rspamd-iscan will then sort it automatically.
+
+> I am using [Hostinger Email](https://www.hostinger.com?REFERRALCODE=RQHGUESEJPZB) (~€1/month) — good, cheap, and works great with this setup. If this saved you some time, feel free to use the referral link and buy me a coffee ☕
+
+### How training works
+
+- **Missed spam in inbox** → drag it to `undetected` — rspamd-iscan will use it as a spam training example
+- **Legitimate mail in spam** → drag it to `ham` — rspamd-iscan will use it as a ham training example
+
+---
+
+## CI / Docker image
+
+The GitHub Actions workflow builds and publishes a new Docker image automatically:
+
+- On every push to `main` (e.g. Dockerfile changes)
+- Weekly, if the upstream repo ([fho/rspamd-iscan](https://github.com/fho/rspamd-iscan)) has new commits — checked via commit SHA caching, so no unnecessary rebuilds
+
+**To publish images from your own fork**, configure:
+
+1. **Settings → Secrets and variables → Actions**
+2. Add variable `DOCKERHUB_USERNAME` — your Docker Hub username
+3. Add secret `DOCKERHUB_TOKEN` — a Docker Hub [access token](https://hub.docker.com/settings/security)

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build stage
-FROM golang:1.25-alpine AS builder
+FROM golang:alpine AS builder
 
 WORKDIR /build
 
@@ -14,6 +14,9 @@ RUN go build -o rspamd-iscan main.go
 
 # Runtime stage
 FROM alpine
+
+# update upgrade
+RUN apk update && apk upgrade --no-cache
 
 RUN apk --no-cache add ca-certificates
 
