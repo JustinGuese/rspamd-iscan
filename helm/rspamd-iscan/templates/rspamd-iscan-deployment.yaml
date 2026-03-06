@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: spamfilter-rspamd-iscan
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: spamfilter-rspamd-iscan
     app.kubernetes.io/part-of: spamfilter-stack

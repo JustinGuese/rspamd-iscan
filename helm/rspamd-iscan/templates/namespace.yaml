@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ .Values.namespace }}
-  labels:
-    app.kubernetes.io/name: {{ .Values.namespace }}
-    app.kubernetes.io/part-of: spamfilter-stack
-  annotations:
-    spamfilter.stack/description: "Namespace for Rspamd + Redis + IMAP scanner spam filtering stack"

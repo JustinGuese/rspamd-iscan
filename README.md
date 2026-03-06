@@ -40,6 +40,7 @@ No `helm repo add` needed — install directly via OCI:
 
 ```bash
 helm install rspamd-iscan oci://ghcr.io/justinguese/rspamd-iscan \
+  -n spamfilter --create-namespace \
   --set rspamdIscan.imapAddr="imap.example.com:993" \
   --set rspamdIscan.imapUser="you@example.com"
 ```
@@ -66,6 +67,7 @@ At minimum you must provide your IMAP server address and username:
 
 ```bash
 helm install rspamd-iscan oci://ghcr.io/justinguese/rspamd-iscan \
+  -n spamfilter --create-namespace \
   --set rspamdIscan.imapAddr="imap.example.com:993" \
   --set rspamdIscan.imapUser="you@example.com"
 ```
@@ -74,6 +76,7 @@ helm install rspamd-iscan oci://ghcr.io/justinguese/rspamd-iscan \
 
 ```bash
 helm install rspamd-iscan oci://ghcr.io/justinguese/rspamd-iscan \
+  -n spamfilter --create-namespace \
   --set rspamdIscan.imapAddr="imap.example.com:993" \
   --set rspamdIscan.imapUser="you@example.com" \
   --set redis.enabled=false \

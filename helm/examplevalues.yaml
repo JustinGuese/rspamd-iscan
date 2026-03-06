@@ -1,4 +1,4 @@
-# Usage: helm install rspamd-iscan ./helm -f helm/examplevalues.yaml
+# Usage: helm install rspamd-iscan oci://ghcr.io/justinguese/rspamd-iscan -f helm/examplevalues.yaml -n spamfilter --create-namespace
 
 rspamdIscan:
   imapAddr: "imap.hostinger.com:993"  # Hostinger Email, its good and cheap (~1€/month), 
