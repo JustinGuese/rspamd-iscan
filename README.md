@@ -34,54 +34,19 @@ docker pull guestros/rspamd-iscan
 
 The Helm chart deploys the full stack: Rspamd + rspamd-iscan, with an optional in-cluster Redis.
 
-### Install from GHCR
+### Install
 
-No `helm repo add` needed — install directly via OCI:
+Copy `helm/examplevalues.yaml`, fill in your IMAP details and password, then install:
 
 ```bash
+cp helm/examplevalues.yaml myvalues.yaml
+# edit myvalues.yaml
+
 helm install rspamd-iscan oci://ghcr.io/justinguese/rspamd-iscan \
-  -n spamfilter --create-namespace \
-  --set rspamdIscan.imapAddr="imap.example.com:993" \
-  --set rspamdIscan.imapUser="you@example.com"
+  -f myvalues.yaml -n spamfilter --create-namespace
 ```
 
-Or clone and install locally from `helm/rspamd-iscan/`.
-
-### 1. Create the IMAP password secret
-
-Only your IMAP password needs to be in a Kubernetes Secret — it is never managed by Helm and never stored in git. Your username and all other settings go in values.
-
-```bash
-kubectl create namespace spamfilter
-
-kubectl create secret generic spamfilter-rspamd-iscan-secret \
-  -n spamfilter \
-  --from-literal=ImapPassword='yourpassword'
-```
-
-The Rspamd controller password is auto-generated on first `helm install` and stored in a separate secret in the cluster.
-
-### 2. Install the chart
-
-At minimum you must provide your IMAP server address and username:
-
-```bash
-helm install rspamd-iscan oci://ghcr.io/justinguese/rspamd-iscan \
-  -n spamfilter --create-namespace \
-  --set rspamdIscan.imapAddr="imap.example.com:993" \
-  --set rspamdIscan.imapUser="you@example.com"
-```
-
-**With an external Redis** (disable the built-in one):
-
-```bash
-helm install rspamd-iscan oci://ghcr.io/justinguese/rspamd-iscan \
-  -n spamfilter --create-namespace \
-  --set rspamdIscan.imapAddr="imap.example.com:993" \
-  --set rspamdIscan.imapUser="you@example.com" \
-  --set redis.enabled=false \
-  --set rspamd.redisServer="redis-service.redis.svc.cluster.local:6379"
-```
+No manual secret creation needed — all credentials go in your values file and are stored in a Kubernetes Secret by Helm. The Rspamd controller password is auto-generated on first install.
 
 All options are documented in `helm/rspamd-iscan/values.yaml`.
 

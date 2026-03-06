@@ -28,17 +28,9 @@ spec:
             - name: rspamd-credentials
               mountPath: /etc/rspamd-iscan/config.toml
               subPath: rspamd-iscan-config.toml
-            - name: rspamd-iscan-credentials
-              mountPath: /run/credentials/rspamd-iscan
-          env:
-            - name: CREDENTIALS_DIRECTORY
-              value: /run/credentials/rspamd-iscan
           resources:
             {{- toYaml .Values.rspamdIscan.resources | nindent 12 }}
       volumes:
         - name: rspamd-credentials
           secret:
             secretName: spamfilter-rspamd-credentials
-        - name: rspamd-iscan-credentials
-          secret:
-            secretName: {{ .Values.rspamdIscan.secretName }}

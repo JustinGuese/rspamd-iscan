@@ -31,7 +31,8 @@ spec:
               value: "{{ .Values.rspamd.redisServer }}"
           volumeMounts:
             - name: rspamd-config
-              mountPath: /etc/rspamd/override.d
+              mountPath: /etc/rspamd/override.d/redis.conf
+              subPath: redis.conf
             - name: rspamd-credentials
               mountPath: /etc/rspamd/override.d/worker-controller.inc
               subPath: worker-controller.inc
