@@ -32,7 +32,19 @@ docker pull guestros/rspamd-iscan
 
 ## Helm (Kubernetes)
 
-A Helm chart is provided in `helm/`. It deploys the full stack: Rspamd + rspamd-iscan, with an optional in-cluster Redis.
+The Helm chart deploys the full stack: Rspamd + rspamd-iscan, with an optional in-cluster Redis.
+
+### Install from GHCR
+
+No `helm repo add` needed — install directly via OCI:
+
+```bash
+helm install rspamd-iscan oci://ghcr.io/justinguese/rspamd-iscan \
+  --set rspamdIscan.imapAddr="imap.example.com:993" \
+  --set rspamdIscan.imapUser="you@example.com"
+```
+
+Or clone and install locally from `helm/rspamd-iscan/`.
 
 ### 1. Create the IMAP password secret
 
@@ -53,7 +65,7 @@ The Rspamd controller password is auto-generated on first `helm install` and sto
 At minimum you must provide your IMAP server address and username:
 
 ```bash
-helm install rspamd-iscan ./helm \
+helm install rspamd-iscan oci://ghcr.io/justinguese/rspamd-iscan \
   --set rspamdIscan.imapAddr="imap.example.com:993" \
   --set rspamdIscan.imapUser="you@example.com"
 ```
@@ -61,20 +73,14 @@ helm install rspamd-iscan ./helm \
 **With an external Redis** (disable the built-in one):
 
 ```bash
-helm install rspamd-iscan ./helm \
+helm install rspamd-iscan oci://ghcr.io/justinguese/rspamd-iscan \
   --set rspamdIscan.imapAddr="imap.example.com:993" \
   --set rspamdIscan.imapUser="you@example.com" \
   --set redis.enabled=false \
   --set rspamd.redisServer="redis-service.redis.svc.cluster.local:6379"
 ```
 
-A reference values file for an external Redis setup is included:
-
-```bash
-helm install rspamd-iscan ./helm -f helm/examplevalues.yaml
-```
-
-All options are documented in `helm/values.yaml`.
+All options are documented in `helm/rspamd-iscan/values.yaml`.
 
 ### IMAP mailbox setup
 
