@@ -18,6 +18,20 @@ rspamd:
   redisServer: "spamfilter-redis:6379"
   # controllerPassword is auto-generated on first deploy and stored in the
   # spamfilter-rspamd-credentials Secret. Do not set this here.
+  # Bayes classifier tuning. Upstream default min_learns=200 keeps Bayes OFF until
+  # 200 spam have been learned; lowered so it activates with a small corpus. Raise
+  # minLearns back toward 200 once BAYES_SPAM learned count is comfortably above it.
+  bayes:
+    minLearns: 30
+    minTokens: 5
+  # Manually curated sender-domain blocklist. A matching From-domain adds `score`
+  # (default pushes over the spam threshold -> filed to Junk; not a hard reject).
+  # NEVER add freemail domains (gmail.com/outlook.com/hotmail.com) - blocks legit mail.
+  # Senders rarely repeat by address, so this is a supplement to Bayes, not the main filter.
+  senderBlocklist:
+    enabled: true
+    score: 7.0
+    domains: []
   resources:
     requests:
       cpu: 100m

@@ -16,6 +16,9 @@ spec:
       labels:
         app.kubernetes.io/name: spamfilter-rspamd
         app.kubernetes.io/part-of: spamfilter-stack
+      annotations:
+        # Roll the pod when the rspamd config (bayes tuning / blocklist) changes.
+        checksum/config: {{ include (print $.Template.BasePath "/rspamd-configmap.yaml") . | sha256sum }}
     spec:
       containers:
         - name: rspamd
@@ -33,6 +36,17 @@ spec:
             - name: rspamd-config
               mountPath: /etc/rspamd/override.d/redis.conf
               subPath: redis.conf
+            - name: rspamd-config
+              mountPath: /etc/rspamd/local.d/classifier-bayes.conf
+              subPath: classifier-bayes.conf
+{{- if .Values.rspamd.senderBlocklist.enabled }}
+            - name: rspamd-config
+              mountPath: /etc/rspamd/local.d/multimap.conf
+              subPath: multimap.conf
+            - name: rspamd-config
+              mountPath: /etc/rspamd/local.d/spam_domains.map
+              subPath: spam_domains.map
+{{- end }}
             - name: rspamd-credentials
               mountPath: /etc/rspamd/override.d/worker-controller.inc
               subPath: worker-controller.inc

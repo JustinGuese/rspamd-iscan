@@ -11,4 +11,26 @@ data:
     write_servers = "{{ .Values.rspamd.redisServer }}";
     read_servers = "{{ .Values.rspamd.redisServer }}";
     db = 0;
+  # Bayes tuning. Upstream defaults (min_learns=200) keep Bayes OFF until 200 spam
+  # have been learned; lowered here so it activates with a small corpus.
+  classifier-bayes.conf: |
+    min_learns = {{ .Values.rspamd.bayes.minLearns }};
+    min_tokens = {{ .Values.rspamd.bayes.minTokens }};
+{{- if .Values.rspamd.senderBlocklist.enabled }}
+  # Curated sender-domain blocklist: matching From-domain adds `score` -> filed to Junk.
+  multimap.conf: |
+    SENDER_DOMAIN_BLOCKLIST {
+      type = "from";
+      filter = "email:domain";
+      map = "/etc/rspamd/local.d/spam_domains.map";
+      symbol = "SENDER_DOMAIN_BLOCKLIST";
+      score = {{ .Values.rspamd.senderBlocklist.score }};
+      description = "Manually curated spam sender domains";
+    }
+  spam_domains.map: |
+    # Curated spam sender domains, one per line. NEVER add freemail (gmail/outlook/hotmail).
+    {{- range .Values.rspamd.senderBlocklist.domains }}
+    {{ . }}
+    {{- end }}
+{{- end }}
 
